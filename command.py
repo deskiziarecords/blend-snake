@@ -1,35 +1,61 @@
-from __future__ import annotations
+from abc import ABCMeta, abstractmethod
 
-from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass
-from functools import cached_property
-from typing import ClassVar, TextIO
+class Transaction(metaclass = ABCMeta):
+	@abstractmethod
+	def execute(self):
+		pass
 
-from .._colors import Colors
-from .._config import Config
+class SELECT(Transaction):
+	def __init__(self, transaction):
+		self.trans = transaction
+
+	def execute(self):
+		self.trans.SELECT()
+
+class INSERT(Transaction):
+	def __init__(self, transaction):
+		self.trans = transaction
+
+	def execute(self):
+		self.trans.INSERT()
+
+class UPDATE(Transaction):
+	def __init__(self, transaction):
+		self.trans = transaction
+
+	def execute(self):
+		self.trans.UPDATE()
+
+class TransactionManager:
+	def SELECT(self):
+		print('Performing SELECT operation!')
+
+	def INSERT(self):
+		print('Performing INSERT operation!')
+
+	def UPDATE(self):
+		print('Performing UPDATE operation!')
 
 
-@dataclass
-class Command:
-    name: ClassVar[str]
-    args: Namespace
-    stdin: TextIO
-    stdout: TextIO
+class TransactionBroker:
+	def __init__(self):
+		self.__transactionQeueue = []
 
-    @staticmethod
-    def init_parser(parser: ArgumentParser) -> None:
-        Config.init_parser(parser)
+	def requestTransaction(self, transaction):
+		self.__transactionQeueue.append(transaction)
+		transaction.execute()
 
-    def run(self) -> int:
-        raise NotImplementedError
+if __name__ == '__main__':
+	traction = TransactionManager()
+	tr_select = SELECT(traction)
+	tr_insert = INSERT(traction)
+	tr_update = UPDATE(traction)
 
-    def print(self, *args: str, end: str = '\n', sep: str = ' ') -> None:
-        print(*args, file=self.stdout, end=end, sep=sep)
-
-    @cached_property
-    def config(self) -> Config:
-        return Config.from_args(vars(self.args))
-
-    @cached_property
-    def colors(self) -> Colors:
-        return Colors(disabled=self.config.no_colors)
+	brkr = TransactionBroker()
+	brkr.requestTransaction(tr_select)
+	brkr.requestTransaction(tr_insert)
+	brkr.requestTransaction(tr_insert)
+	brkr.requestTransaction(tr_select)
+	brkr.requestTransaction(tr_update)
+	brkr.requestTransaction(tr_insert)
+	brkr.requestTransaction(tr_update)
